@@ -7,28 +7,47 @@ use File::Basename;
 use Getopt::Std;
 
 
+my $fonts_dir = dirname(__FILE__) . '/../share/vtfonts';
+
+
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 sub main::HELP_MESSAGE {
-    print "usage: $0 [-C0 | -C1 | -C2 | -C3] [-n NAME] [-b Y] \n";
+    print "usage: $0 [-C0 | -C1 | -C2 | -C3] [-n NAME] [-b Y] FONT_NAME\n";
+    print "       $0 -l\n";
 }
 
 sub main::VERSION_MESSAGE {
     print "$0 -- loads user fonts into VT300-compatible terminals\n";
 }
 
-our ($opt_b, $opt_C, $opt_n);
-getopts('b:C:n:');
+our ($opt_b, $opt_C, $opt_n, $opt_l);
+getopts('b:C:n:l');
 
-if (scalar @ARGV != 1) {
+if (scalar @ARGV != 1 && !$opt_l) {
     main::HELP_MESSAGE;
     exit 1;
 }
 my $font_name = $ARGV[0];
 
-$font_name = '../share/vtfonts/$font_name.vtfont'
-    if (-e dirname(__FILE__) . '../share/vtfonts/$font_name.vtfont');
+if ($opt_l) {
+    opendir(my $dh, $fonts_dir) || die "can't list fonts: $!";
+    foreach (readdir($dh)) {
+        next unless s/\.vtfont$//;
+        print "$_\n";
+    }
+    exit 0;
+}
 
-open my $fh, '<', $font_name or die "can't open file '$!'";
+if (-e "$fonts_dir/$font_name.vtfont") {
+    $font_name = "$fonts_dir/$font_name.vtfont"
+} 
+
+if (! -e $font_name) {
+    print STDERR "no such font '$font_name'\n";
+    exit 1;
+}
+
+open my $fh, '<', $font_name or die "can't open file '$font_name': $!";
 my $font = do { local $/; <$fh> };
 
 $font =~ s/^#.*?\n//g;
